@@ -1,37 +1,58 @@
-# 📅 LINE Birthdate Picker & Life Path Number Bot 🔮
+# 📸 LINE Bot 原生相機與相簿觸發 (Camera & Camera Roll Actions) 🔮
 
-本專案專注於在 LINE Bot 中實現 **LINE 原生生日日期選擇器 (Birthdate Picker)** 與 **生命靈數 (Life Path Number) 動態運算與解讀** 功能。
+本專案專注於在 LINE Bot 中實現 **LINE 原生相機拍攝 (Camera Action)** 與 **原生相簿選取 (Camera Roll Action)** 功能，提供使用者一鍵喚起手機相機或相簿、拍攝/上傳照片進行多模態 AI 運算與鑑定的極致順暢體驗。
 
 ---
 
-## 🌟 核心功能說明
+## 🌟 核心功能說明：原生相機與相簿觸發 (Camera & Camera Roll Actions)
 
-### 1. 📅 生日選擇器快速回覆 (Quick Reply Datetime Picker)
-* **原生日期選擇器**：當用戶在「精靈選單」點擊「認識水晶」時，底部會自動彈出「輸入生日」的快速回覆按鈕。點擊後，會調用 LINE 原生的日期選擇器（預設日期為 `2000-01-01`）。
-* **跨平台相容性優化**：移除了極端的最小/最大日期邊界限制，解決了在舊版 LINE App 或 LINE 電腦版（Desktop）上可能發生的訊息渲染崩潰問題，保證 100% 的顯示相容性。
+### 1. 📸 喚起原生相機拍攝 (`type: "camera"`)
+* **一鍵喚起相機**：當使用者在 Quick Reply 快速回覆按鈕點擊「📸 拍照鑑定水晶」時，LINE App 會自動喚起手機的原生相機畫面。
+* **零摩擦拍攝體驗**：使用者拍攝後點擊完成，照片便會直接發送至聊天室，觸發後端進行多模態 AI 圖片分析與鑑定。
 
-### 2. 🔢 生命靈數自動加總演算法 (Life Path Number Calculation)
-* **遞迴相加演算法**：系統在接收到生日資料後，會自動將西元出生年、月、日的所有數字拆解並進行加總。若總和超過個位數，則將所得之十位數與個位數再次相加，直至算出 $1 \sim 9$ 的單一數字。
-* **📝 運算實際舉例**：
-  * 若生日為：西元 `1995` 年 `11` 月 `23` 日
-  * 第一輪拆解加總：$1 + 9 + 9 + 5 + 1 + 1 + 2 + 3 = 31$
-  * 第二輪拆解加總：$3 + 1 = 4$
-  * 得出結果：該生日的生命靈數即為 **4**。
+### 2. 🖼️ 喚起原生相簿選擇 (`type: "cameraRoll"`)
+* **直接選擇相簿照片**：當使用者點擊「🖼️ 相簿選擇水晶」按鈕時，LINE App 會自動開啟相簿選擇器，讓使用者自由挑選手機中已有的水晶或物品照片發送。
 
-### 3. 📸 原生相機與相簿觸發 (Camera & Camera Roll Actions)
-* **`type: "camera"`**：在 Quick Reply 中提供「📸 拍照鑑定水晶」按鈕，點擊後會直接調用 LINE App 原生相機功能，方便用戶現場拍攝水晶並進行多模態 AI 鑑定。
-* **`type: "cameraRoll"`**：提供「🖼️ 相簿選擇水晶」按鈕，方便用戶從手機相簿挑選已有的水晶照片發送給 AI 專家。
+---
 
-### 4. 🎯 「了解我的生命靈數」動態快速回覆
-* **動態按鈕觸發**：當用戶選擇並輸入生日後，系統在隨後的回覆訊息中，會主動在底部附帶一個「了解我的生命靈數」快速回覆按鈕。
-* **一鍵快速諮詢**：用戶點擊該按鈕後，會直接向水晶占星專家發送諮詢請求，引導 Gemini 進行深度、客製化的生命靈數與水晶能量關聯分析。
+## 💻 程式碼實現範例 (Quick Reply Integration)
+
+在 LINE Messaging API 中，透過 Quick Reply 綁定 `camera` 與 `cameraRoll` action 的語法如下：
+
+```javascript
+// 定義相機與相簿 Quick Reply 按鈕
+const cameraButton = {
+  type: 'action',
+  action: {
+    type: 'camera',
+    label: '📸 拍照鑑定水晶'
+  }
+};
+
+const cameraRollButton = {
+  type: 'action',
+  action: {
+    type: 'cameraRoll',
+    label: '🖼️ 相簿選擇水晶'
+  }
+};
+
+// 於回覆訊息中夾帶 Quick Reply
+const replyMessage = {
+  type: 'text',
+  text: '請選擇您要發送照片的方式：',
+  quickReply: {
+    items: [cameraButton, cameraRollButton]
+  }
+};
+```
 
 ---
 
 ## 🛠️ 環境配置與部署
 
 ### 1. 本地環境變數設定 (`.env`)
-請在專案根目錄下建立 `.env` 檔案，並填入以下必要設定：
+請在專案根目錄下建立 `.env` 檔案：
 
 ```env
 PORT=8080
@@ -44,24 +65,15 @@ LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token_here
 GCP_PROJECT=your_gcp_project_id_here
 GCP_LOCATION=us-central1
 VERTEX_AI_MODEL=gemini-2.5-flash
-
-# GitHub 存取憑證 (用於代碼同步)
-GITHUB_TOKEN=ghp_your_personal_access_token_here
 ```
 
-### 2. 本地執行
+### 2. 本地執行與測試
 ```bash
-# 安裝相依套件
 npm install
-
-# 啟動本機伺服器
 npm start
 ```
 
 ### 3. 部署至 Google Cloud Run
-利用以下指令，可以快速將此 Bot 服務一鍵部署至雲端：
 ```bash
 gcloud run deploy line-echo-bot --source . --region asia-east1
 ```
-
-部署完成後，請將產生的 Cloud Run URL（如 `https://...run.app/webhook`）設定於 LINE Developer Console 的 Webhook URL 中。
