@@ -665,12 +665,12 @@ async function handleEvent(event, req) {
     console.log(`✨ [IconSwitch] No deity tag found. Falling back to default: "${deity}"`);
   }
 
-  // 6. Generate follow-up Quick Replies (with LINE Camera Action support)
+  // 6. Generate follow-up Quick Replies (with LINE Camera Action & Text Fallback support)
   const cameraButton = {
     type: 'action',
     action: {
       type: 'camera',
-      label: '📸 拍照鑑定水晶'
+      label: '📸 點我開啟相機'
     }
   };
 
@@ -678,15 +678,32 @@ async function handleEvent(event, req) {
     type: 'action',
     action: {
       type: 'cameraRoll',
-      label: '🖼️ 相簿選擇水晶'
+      label: '🖼️ 點我開啟相簿'
+    }
+  };
+
+  const cameraMsgButton = {
+    type: 'action',
+    action: {
+      type: 'message',
+      label: '可以拍照鑒定水晶嗎',
+      text: '可以拍照鑒定水晶嗎'
     }
   };
 
   let followUpQuestions = null;
   if (isGuide) {
     const userMsgText = event.message.type === 'text' ? event.message.text.trim() : '';
-    if (userMsgText === '認識水晶') {
+    if (userMsgText.includes('拍照') || userMsgText.includes('相機') || userMsgText.includes('鑑定水晶') || userMsgText.includes('鑒定水晶')) {
       followUpQuestions = [
+        cameraButton,
+        cameraRollButton,
+        cameraMsgButton,
+        '天秤座適合戴什麼？'
+      ];
+    } else if (userMsgText === '認識水晶') {
+      followUpQuestions = [
+        cameraMsgButton,
         cameraButton,
         cameraRollButton,
         {
@@ -698,24 +715,23 @@ async function handleEvent(event, req) {
             mode: 'date',
             initial: '2000-01-01'
           }
-        },
-        '天秤座適合戴什麼？'
+        }
       ];
     } else {
       followUpQuestions = [
+        cameraMsgButton,
         cameraButton,
         cameraRollButton,
-        '我生日1995年10月12日',
-        '天秤座適合戴什麼？'
+        '我生日1995年10月12日'
       ];
     }
   } else {
     followUpQuestions = await generateFollowUpQuestions(responseText);
     if (!followUpQuestions) {
-      followUpQuestions = [cameraButton, cameraRollButton];
+      followUpQuestions = [cameraMsgButton, cameraButton, cameraRollButton];
     } else {
-      // Prepend cameraButton so user can trigger camera anytime
-      followUpQuestions = [cameraButton, ...followUpQuestions].slice(0, 4);
+      // Prepend cameraMsgButton and cameraButton so user can trigger camera anytime
+      followUpQuestions = [cameraMsgButton, cameraButton, ...followUpQuestions].slice(0, 4);
     }
   }
 
