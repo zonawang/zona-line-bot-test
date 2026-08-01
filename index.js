@@ -566,6 +566,9 @@ async function handleEvent(event, req) {
 • 🩵 溝通與表達（海藍寶/天河石）：暢通喉輪，讓說話充滿溫柔與堅定的力量。
 
 🌸 記得，水晶是您能量的放大鏡與守護者。保持正向的信念，與您的水晶夥伴建立連結，它將會以最美好的頻率守護著您。`;
+      } else if (userMessage.includes('拍照') || userMessage.includes('相機') || userMessage.includes('鑑定水晶') || userMessage.includes('鑒定水晶')) {
+        isGuide = true;
+        responseText = `📸 沒問題！親愛的，請點擊下方 Quick Reply 按鈕【📸 拍照鑑定水晶】，即可立即開啟相機拍攝您的水晶：`;
       } else {
         newMessage = {
           role: 'user',
