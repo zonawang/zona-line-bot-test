@@ -386,7 +386,7 @@ function isFortuneQuestion(text) {
     return false;
   }
 
-  const explicitFortuneKeywords = [
+  const exactOrPrefixFortunePhrases = [
     '今日運勢',
     '今天運勢',
     '本日運勢',
@@ -402,19 +402,11 @@ function isFortuneQuestion(text) {
     '今天桃花運'
   ];
 
-  if (explicitFortuneKeywords.some((keyword) => normalizedText.includes(keyword))) {
-    return true;
-  }
+  const suffixes = ['', '如何', '怎麼樣', '怎樣', '好嗎', '呢', '?', '？'];
 
-  if (/(今日|今天|本日).*(運勢|財運|感情運|工作運|桃花運|開運)/.test(normalizedText)) {
-    return true;
-  }
-
-  if (normalizedText.includes('運勢') && /(如何|怎麼樣|怎樣|好嗎|呢|\?|？)/.test(normalizedText)) {
-    return true;
-  }
-
-  return false;
+  return exactOrPrefixFortunePhrases.some((phrase) =>
+    suffixes.some((suffix) => normalizedText === `${phrase}${suffix}`)
+  );
 }
 
 function createAskAiPromptFromAnalysis(analysisText) {
