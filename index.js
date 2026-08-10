@@ -351,6 +351,32 @@ const DEITY_CONFIG = {
   }
 };
 
+const CLIPBOARD_TEMPLATES = {
+  birthPrompt: '老師，我的生日是1995年10月12日，請幫我分析我的星盤、生命靈數，以及適合我的水晶。',
+  photoPrompt: '老師，這是我的水晶照片，請幫我分析它的能量特徵、五行、脈輪共振，以及適合的佩戴方式。',
+  dailyPrompt: '老師，請根據我的生日與目前狀態，推薦我今天最適合佩戴的水晶與原因。'
+};
+
+function createClipboardQuickReply(label, clipboardText) {
+  const normalizedText = String(clipboardText || '')
+    .replace(/\r\n/g, '\n')
+    .trim();
+  const fallbackText = '感謝使用水晶與星盤能量諮詢室。';
+  const safeText = normalizedText || fallbackText;
+  const truncatedText = safeText.length > 1000
+    ? `${safeText.slice(0, 999).trimEnd()}…`
+    : safeText;
+
+  return {
+    type: 'action',
+    action: {
+      type: 'clipboard',
+      label,
+      clipboardText: truncatedText
+    }
+  };
+}
+
 // ==========================================
 // 📅 Life Path Number Helpers (生命靈數計算與日期解析)
 // ==========================================
@@ -691,6 +717,14 @@ async function handleEvent(event, req) {
     }
   };
 
+  const copyResponseButton = createClipboardQuickReply(
+    isGuide ? '複製這段內容' : '複製本次解析',
+    responseText
+  );
+  const copyBirthPromptButton = createClipboardQuickReply('複製生日範本', CLIPBOARD_TEMPLATES.birthPrompt);
+  const copyPhotoPromptButton = createClipboardQuickReply('複製照片提問', CLIPBOARD_TEMPLATES.photoPrompt);
+  const copyDailyPromptButton = createClipboardQuickReply('複製今日提問', CLIPBOARD_TEMPLATES.dailyPrompt);
+
   let followUpQuestions = null;
   if (isGuide) {
     const userMsgText = event.message.type === 'text' ? event.message.text.trim() : '';
@@ -698,12 +732,12 @@ async function handleEvent(event, req) {
       followUpQuestions = [
         cameraButton,
         cameraRollButton,
-        cameraMsgButton,
+        copyPhotoPromptButton,
         '天秤座適合戴什麼？'
       ];
     } else if (userMsgText === '認識水晶') {
       followUpQuestions = [
-        cameraMsgButton,
+        copyBirthPromptButton,
         cameraButton,
         cameraRollButton,
         {
@@ -719,7 +753,7 @@ async function handleEvent(event, req) {
       ];
     } else {
       followUpQuestions = [
-        cameraMsgButton,
+        copyDailyPromptButton,
         cameraButton,
         cameraRollButton,
         '我生日1995年10月12日'
@@ -728,10 +762,10 @@ async function handleEvent(event, req) {
   } else {
     followUpQuestions = await generateFollowUpQuestions(responseText);
     if (!followUpQuestions) {
-      followUpQuestions = [cameraMsgButton, cameraButton, cameraRollButton];
+      followUpQuestions = [copyResponseButton, cameraMsgButton, cameraButton, cameraRollButton];
     } else {
-      // Prepend cameraMsgButton and cameraButton so user can trigger camera anytime
-      followUpQuestions = [cameraMsgButton, cameraButton, ...followUpQuestions].slice(0, 4);
+      // Keep utility actions first so users can copy or continue with photo analysis at any time.
+      followUpQuestions = [copyResponseButton, cameraMsgButton, cameraButton, ...followUpQuestions].slice(0, 5);
     }
   }
 
@@ -752,8 +786,8 @@ async function handleEvent(event, req) {
       if (!followUpQuestions) {
         followUpQuestions = [lifePathButton];
       } else {
-        // Prepend and limit to 3 options
-        followUpQuestions = [lifePathButton, ...followUpQuestions].slice(0, 3);
+        // Prepend while keeping the clipboard and camera utilities available.
+        followUpQuestions = [lifePathButton, ...followUpQuestions].slice(0, 5);
       }
     }
   }
