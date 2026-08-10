@@ -377,6 +377,63 @@ function createClipboardQuickReply(label, clipboardText) {
   };
 }
 
+function isFortuneQuestion(text) {
+  const normalizedText = String(text || '')
+    .replace(/\s+/g, '')
+    .trim();
+
+  if (!normalizedText) {
+    return false;
+  }
+
+  const explicitFortuneKeywords = [
+    '今日運勢',
+    '今天運勢',
+    '本日運勢',
+    '今日整體運勢',
+    '今天整體運勢',
+    '今日財運',
+    '今天財運',
+    '今日感情運',
+    '今天感情運',
+    '今日工作運',
+    '今天工作運',
+    '今日桃花運',
+    '今天桃花運'
+  ];
+
+  if (explicitFortuneKeywords.some((keyword) => normalizedText.includes(keyword))) {
+    return true;
+  }
+
+  if (/(今日|今天|本日).*(運勢|財運|感情運|工作運|桃花運|開運)/.test(normalizedText)) {
+    return true;
+  }
+
+  if (normalizedText.includes('運勢') && /(如何|怎麼樣|怎樣|好嗎|呢|\?|？)/.test(normalizedText)) {
+    return true;
+  }
+
+  return false;
+}
+
+function createAskAiPromptFromAnalysis(analysisText) {
+  const normalizedText = String(analysisText || '')
+    .replace(/\r\n/g, '\n')
+    .trim();
+
+  const fallbackText = normalizedText || '（這次沒有成功取得解析內容，請直接依我的提問協助我整理今日運勢。）';
+
+  return [
+    '以下是我從 LINE bot 得到的今日運勢解析，請根據這段內容幫我進一步整理：',
+    '1. 用三點摘要今天最重要的提醒',
+    '2. 給我兩個今天可以立刻執行的具體建議',
+    '3. 告訴我今天最需要避免的一件事',
+    '',
+    fallbackText
+  ].join('\n');
+}
+
 // ==========================================
 // 📅 Life Path Number Helpers (生命靈數計算與日期解析)
 // ==========================================
@@ -479,6 +536,7 @@ async function handleEvent(event, req) {
   let responseText = '';
   let newMessage = null;
   let isGuide = false;
+  let userMessage = '';
 
   try {
     // 1. Get or create session
@@ -490,7 +548,7 @@ async function handleEvent(event, req) {
 
     // 2. Prepare the input payload
     if (messageType === 'text') {
-      const userMessage = event.message.text.trim();
+      userMessage = event.message.text.trim();
       console.log(`💬 User text content: "${userMessage}"`);
       if (userMessage === '使用指南' || userMessage === '使用說明' || userMessage === '閱讀指南') {
         isGuide = true;
@@ -717,13 +775,11 @@ async function handleEvent(event, req) {
     }
   };
 
-  const copyResponseButton = createClipboardQuickReply(
-    isGuide ? '複製這段內容' : '複製本次解析',
-    responseText
-  );
   const copyBirthPromptButton = createClipboardQuickReply('複製生日範本', CLIPBOARD_TEMPLATES.birthPrompt);
   const copyPhotoPromptButton = createClipboardQuickReply('複製照片提問', CLIPBOARD_TEMPLATES.photoPrompt);
   const copyDailyPromptButton = createClipboardQuickReply('複製今日提問', CLIPBOARD_TEMPLATES.dailyPrompt);
+  const shouldOfferAskAiClipboard = !isGuide && messageType === 'text' && isFortuneQuestion(userMessage);
+  const copyAskAiButton = createClipboardQuickReply('複製本次解析問AI', createAskAiPromptFromAnalysis(responseText));
 
   let followUpQuestions = null;
   if (isGuide) {
@@ -762,10 +818,17 @@ async function handleEvent(event, req) {
   } else {
     followUpQuestions = await generateFollowUpQuestions(responseText);
     if (!followUpQuestions) {
-      followUpQuestions = [copyResponseButton, cameraMsgButton, cameraButton, cameraRollButton];
+      followUpQuestions = [cameraMsgButton, cameraButton, cameraRollButton];
     } else {
-      // Keep utility actions first so users can copy or continue with photo analysis at any time.
-      followUpQuestions = [copyResponseButton, cameraMsgButton, cameraButton, ...followUpQuestions].slice(0, 5);
+      followUpQuestions = [cameraMsgButton, cameraButton, ...followUpQuestions].slice(0, 5);
+    }
+  }
+
+  if (shouldOfferAskAiClipboard) {
+    if (!followUpQuestions) {
+      followUpQuestions = [copyAskAiButton];
+    } else {
+      followUpQuestions = [copyAskAiButton, ...followUpQuestions].slice(0, 5);
     }
   }
 
